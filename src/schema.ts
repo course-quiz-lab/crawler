@@ -3,7 +3,8 @@ export interface BankMetadata {
   name: string;
   course: string;
   author: string;
-  source?: string;
+  source?: string | null;
+  sourceUrl?: string | null;
 }
 
 /** 题目类型 */
@@ -57,6 +58,14 @@ export interface Bank {
   metadata: BankMetadata;
   questions: Question[];
 }
+
+/** 使 Bank 及其所有嵌套字段均为 required */
+export type RequiredBank = DeepRequired<Bank>;
+
+/** 递归地将所有字段（包括嵌套对象）变为 required */
+type DeepRequired<T> = T extends object
+  ? { [K in keyof T]-?: DeepRequired<T[K]> }
+  : T;
 
 /** 题目数量统计 */
 export interface QuestionCount {

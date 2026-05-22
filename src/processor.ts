@@ -2,12 +2,8 @@ import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { generateBankId } from './hasher.js';
-import type {
-  Bank,
-  BankIndex,
-  ProcessError,
-  QuestionCount
-} from './schema.js';
+import { getRemoteFileUrl } from './git.js';
+import type { Bank, BankIndex, ProcessError, QuestionCount, RequiredBank } from './schema.js';
 import { reportError } from './summary.js';
 import { validateBank } from './validator.js';
 
@@ -109,15 +105,28 @@ async function processFile(
     return null;
   }
 
-  const bank = data as Bank;
+  const copy = data as Bank;
+  const sourceUrl = await getRemoteFileUrl(filePath);
 
-  // 先生成 ID（基于原始数据，不含 $schema 注入带来的影响），确保 ID 稳定
+  const bank = {
+    ...copy,
+    $schema:
+      'https://course-quiz-lab.github.io/json-schema/v1/bank.schema.json',
+    metadata: {
+      ...copy.metadata,
+      source: copy.metadata.source ?? null,
+      sourceUrl: sourceUrl ?? null,
+    },
+    questions: copy.questions.map((q) => ({
+      ...q,
+      analysis: q.analysis ?? '',
+      difficulty: q.difficulty ?? '',
+    })),
+  } satisfies RequiredBank;
+
+  // 先生成 ID（基于原始数据，不含后续注入字段的影响），确保 ID 稳定
   const id = generateBankId(data as Record<string, unknown>);
   const prefix = id.slice(0, 2);
-
-  // 确保输出文件包含 $schema 字段
-  bank.$schema =
-    'https://course-quiz-lab.github.io/json-schema/v1/bank.schema.json';
 
   // 输出目录
   const targetDir = join(outputDir, prefix);
@@ -136,7 +145,7 @@ async function processFile(
   const indexEntry: BankIndex = {
     metadata: bank.metadata,
     count,
-    url: `${prefix}/${id}.json`,
+    url: `https://course-quiz-lab.github.io/store/${prefix}/${id}.json`,
   };
 
   return indexEntry;
