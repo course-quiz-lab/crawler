@@ -1,0 +1,72 @@
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Generate sample banks
+        run: |
+          mkdir -p data
+          cat > data/sample.json << 'EOF'
+          {
+            "metadata": {
+              "name": "示例题库",
+              "course": "GitHub Actions 入门",
+              "author": "CI"
+            },
+            "questions": [
+              {
+                "type": "single",
+                "stem": "GitHub Actions 的配置文件应放在哪个目录？",
+                "options": [".github/", ".github/workflows/", "actions/", "workflows/"],
+                "answer": 1
+              },
+              {
+                "type": "multiple",
+                "stem": "以下哪些是 GitHub Actions 的核心概念？",
+                "options": ["Workflow", "Job", "Pod", "Step"],
+                "answer": [0, 1, 3]
+              },
+              {
+                "type": "judge",
+                "stem": "GitHub Actions 只支持 Linux 运行器",
+                "answer": false
+              },
+              {
+                "type": "indeterminate",
+                "stem": "以下哪些事件可以触发 Workflow？",
+                "options": ["push", "pull_request", "schedule", "deployment"],
+                "answer": [0, 1, 2, 3]
+              }
+            ]
+          }
+          EOF
+
+      - name: Run crawler
+        run: pnpm start --dir ./data
+
+      - name: Upload dist
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
