@@ -11,9 +11,9 @@
         "simple-git": "^3.36.0"
     },
     "devDependencies": {
-        "@types/node": "^25.9.1",
-        "tsx": "^4.22.4",
-        "typescript": "^6.0.3"
+        "@types/node": "^26.1.1",
+        "tsx": "^4.23.0",
+        "typescript": "^7.0.2"
     },
     "scripts": {
         "start": "tsx src/index.ts"
